@@ -24,7 +24,7 @@ main:
               assign:
               - config:
                   working_bucket: "${working_bucket}"
-                  output_bucket: "${output_bucket}"   
+                  output_bucket: "${output_bucket}"
                   input_bucket: $${args.bucket}
                   input_file: $${args.file}
                   project_id: $${sys.get_env("GOOGLE_CLOUD_PROJECT_ID")}
@@ -83,8 +83,6 @@ main:
         result: bq_output
     - 6-print-output:
         return: $${redacted_pdf.body}
-
-
 redact_single_pages_step:
   params: [config, pages_to_redact]
   steps:
