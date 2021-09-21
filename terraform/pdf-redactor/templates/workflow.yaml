@@ -24,7 +24,7 @@ main:
               assign:
               - config:
                   working_bucket: "${working_bucket}"
-                  output_bucket: "${output_bucket}"  
+                  output_bucket: "${output_bucket}"
                   input_bucket: $${args.bucket}
                   input_file: $${args.file}
                   project_id: $${sys.get_env("GOOGLE_CLOUD_PROJECT_ID")}
@@ -90,36 +90,32 @@ redact_single_pages_step:
         assign:
           - redacted_pages_list: ""
           - findings_file_list: ""
-          - i: 0          
-    - check_condition_step:
-        switch:
-          - condition: $${len(pages_to_redact) > i}
-            next: redact_page_step
-        next: exit_loop_step
-    - redact_page_step:
-        call: http.post
-        args:
-          url: "${dlp_runner_url}"
-          auth:
-            type: OIDC
-          body:
-            input_file: $${pages_to_redact[i]}
-            input_file_bucket: $${config.working_bucket}
-            output_file: $${text.split(pages_to_redact[i], ".jpg")[0] + "-redacted.jpg"}
-            output_file_bucket: $${config.working_bucket}
-            dlp_template: $${config.dlp_template}
-            include_quote_in_findings: $${config.include_quote_in_findings}
-            project_id: $${config.project_id}
-            findings_labels: $${config.findings_labels}
-        result: redacted_page_result
-        next: iterate_step
-    - iterate_step:
-        assign:
-          - redacted_pages_list: $${redacted_pages_list + redacted_page_result.body.redacted_image.file + ", "}
-          - findings_file_list: $${findings_file_list + redacted_page_result.body.findings.file + ","}
-          - i: $${i+1}
-        next: check_condition_step
-    - exit_loop_step:
+    - run-dlp-on-each-page:
+        for:
+          value: page_to_redact
+          in: $${pages_to_redact}
+          steps:
+              - redact_page_step:
+                  call: http.post
+                  args:
+                    url: "${dlp_runner_url}"
+                    auth:
+                      type: OIDC
+                    body:
+                      input_file: $${page_to_redact}
+                      input_file_bucket: $${config.working_bucket}
+                      output_file: $${text.split(page_to_redact, ".jpg")[0] + "-redacted.jpg"}
+                      output_file_bucket: $${config.working_bucket}
+                      dlp_template: $${config.dlp_template}
+                      include_quote_in_findings: $${config.include_quote_in_findings}
+                      project_id: $${config.project_id}
+                      findings_labels: $${config.findings_labels}
+                  result: redacted_page_result
+              - concat_output_step:
+                  assign:
+                    - redacted_pages_list: $${redacted_pages_list + redacted_page_result.body.redacted_image.file + ", "}
+                    - findings_file_list: $${findings_file_list + redacted_page_result.body.findings.file + ","}
+    - return-results:
         return:
           findings_file_list: $${findings_file_list}
           redacted_pages_list: $${redacted_pages_list}
