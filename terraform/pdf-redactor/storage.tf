@@ -14,12 +14,14 @@
 
 resource "google_storage_bucket" "pdf_input_bucket" {
   name          = "pdf-input-bucket${local.app_suffix}"
+  uniform_bucket_level_access = true
   location      = var.region
   force_destroy = true
 }
 
 resource "google_storage_bucket" "working_bucket" {
   name          = "pdf-working-bucket${local.app_suffix}"
+  uniform_bucket_level_access = true
   location      = var.region
   force_destroy = true
   lifecycle_rule {
@@ -33,6 +35,7 @@ resource "google_storage_bucket" "working_bucket" {
 }
 
 resource "google_storage_bucket" "pdf_output_bucket" {
+  uniform_bucket_level_access = true
   name          = "pdf-output-bucket${local.app_suffix}"
   location      = var.region
   force_destroy = true
