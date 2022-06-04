@@ -50,6 +50,12 @@ resource "google_cloud_run_service" "dlp_runner" {
     latest_revision = true
   }
 
+  metadata {
+    annotations = {
+        "run.googleapis.com/ingress" = "internal"
+    }
+  }
+  
   depends_on = [
     module.project_services,
   ]

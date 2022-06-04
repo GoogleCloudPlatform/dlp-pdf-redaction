@@ -35,6 +35,12 @@ resource "google_cloud_run_service" "pdf_merger" {
     }
   }
 
+  metadata {
+    annotations = {
+        "run.googleapis.com/ingress" = "internal"
+    }
+  }
+  
   traffic {
     percent         = 100
     latest_revision = true
