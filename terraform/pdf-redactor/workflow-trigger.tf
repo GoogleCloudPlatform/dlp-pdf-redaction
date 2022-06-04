@@ -57,8 +57,8 @@ resource "google_cloudfunctions_function" "function" {
   source_archive_bucket = google_storage_bucket.artifact_bucket.name
   source_archive_object = google_storage_bucket_object.build_artifact.name
   service_account_email = google_service_account.workflow_trigger.email
-  ingress_settings = "ALLOW_INTERNAL_ONLY"
-  
+  ingress_settings = "ALLOW_INTERNAL_AND_GCLB"
+
   event_trigger {
     event_type = "google.storage.object.finalize"
     resource   = google_storage_bucket.pdf_input_bucket.name
