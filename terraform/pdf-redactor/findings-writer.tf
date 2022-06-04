@@ -53,6 +53,12 @@ resource "google_cloud_run_service" "findings_writer" {
     latest_revision = true
   }
 
+  metadata {
+    annotations = {
+        "run.googleapis.com/ingress" = "internal"
+    }
+  }
+  
   depends_on = [
     module.project_services,
   ]

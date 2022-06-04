@@ -34,6 +34,12 @@ resource "google_cloud_run_service" "pdf_splitter" {
       service_account_name = google_service_account.pdf_splitter.email
     }
   }
+  
+  metadata {
+    annotations = {
+        "run.googleapis.com/ingress" = "internal"
+    }
+  }
 
   traffic {
     percent         = 100
