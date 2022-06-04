@@ -1,4 +1,4 @@
-Flask==2.0.3
-google-cloud-storage==2.1.0
+Flask==2.1.2
+google-cloud-storage==2.3.0
 gunicorn==20.1.0
 pdf2image==1.16.0
