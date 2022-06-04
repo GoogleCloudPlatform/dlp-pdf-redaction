@@ -14,6 +14,7 @@
 
 resource "google_storage_bucket" "artifact_bucket" {
   name = "pdf-redaction-artifacts-${local.app_suffix}"
+  uniform_bucket_level_access = true
 }
 
 locals {
