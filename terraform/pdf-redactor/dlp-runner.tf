@@ -13,23 +13,27 @@
 # limitations under the License.
 
 resource "google_service_account" "dlp_runner" {
+  project      = var.project_id
   account_id   = "dlp-runner-sa${local.app_suffix}"
   display_name = "SA for DLP Runner function"
 }
 
 resource "google_project_iam_member" "dlp_runner_dlp_user" {
-  role   = "roles/dlp.user"
-  member = "serviceAccount:${google_service_account.dlp_runner.email}"
+  project = var.project_id
+  role    = "roles/dlp.user"
+  member  = "serviceAccount:${google_service_account.dlp_runner.email}"
 }
 
 resource "google_project_iam_member" "dlp_runner_dlp_template_reader" {
-  role   = "roles/dlp.inspectTemplatesReader"
-  member = "serviceAccount:${google_service_account.dlp_runner.email}"
+  project = var.project_id
+  role    = "roles/dlp.inspectTemplatesReader"
+  member  = "serviceAccount:${google_service_account.dlp_runner.email}"
 }
 
 resource "google_project_iam_member" "dlp_runner_storage_user" {
-  role   = "roles/storage.admin"
-  member = "serviceAccount:${google_service_account.dlp_runner.email}"
+  project = var.project_id
+  role    = "roles/storage.admin"
+  member  = "serviceAccount:${google_service_account.dlp_runner.email}"
 }
 
 resource "google_cloud_run_service" "dlp_runner" {
@@ -52,10 +56,10 @@ resource "google_cloud_run_service" "dlp_runner" {
 
   metadata {
     annotations = {
-        "run.googleapis.com/ingress" = "internal"
+      "run.googleapis.com/ingress" = "internal"
     }
   }
-  
+
   depends_on = [
     module.project_services,
   ]

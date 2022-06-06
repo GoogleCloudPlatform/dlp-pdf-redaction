@@ -18,8 +18,9 @@ resource "google_service_account" "pdf_splitter" {
 }
 
 resource "google_project_iam_member" "pdf_splitter_storage_user" {
-  role   = "roles/storage.admin"
-  member = "serviceAccount:${google_service_account.pdf_splitter.email}"
+  project = var.project_id
+  role    = "roles/storage.admin"
+  member  = "serviceAccount:${google_service_account.pdf_splitter.email}"
 }
 
 resource "google_cloud_run_service" "pdf_splitter" {
@@ -34,10 +35,10 @@ resource "google_cloud_run_service" "pdf_splitter" {
       service_account_name = google_service_account.pdf_splitter.email
     }
   }
-  
+
   metadata {
     annotations = {
-        "run.googleapis.com/ingress" = "internal"
+      "run.googleapis.com/ingress" = "internal"
     }
   }
 

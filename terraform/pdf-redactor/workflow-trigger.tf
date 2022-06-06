@@ -13,7 +13,8 @@
 # limitations under the License.
 
 resource "google_storage_bucket" "artifact_bucket" {
-  name = "pdf-redaction-artifacts-${local.app_suffix}"
+  location                    = var.region
+  name                        = "pdf-redaction-artifacts-${local.app_suffix}"
   uniform_bucket_level_access = true
 }
 
@@ -42,8 +43,9 @@ resource "google_service_account" "workflow_trigger" {
 }
 
 resource "google_project_iam_member" "workflow_trigger" {
-  role   = "roles/workflows.invoker"
-  member = "serviceAccount:${google_service_account.workflow_trigger.email}"
+  project = var.project_id
+  role    = "roles/workflows.invoker"
+  member  = "serviceAccount:${google_service_account.workflow_trigger.email}"
 }
 
 resource "google_cloudfunctions_function" "function" {
@@ -57,7 +59,7 @@ resource "google_cloudfunctions_function" "function" {
   source_archive_bucket = google_storage_bucket.artifact_bucket.name
   source_archive_object = google_storage_bucket_object.build_artifact.name
   service_account_email = google_service_account.workflow_trigger.email
-  ingress_settings = "ALLOW_INTERNAL_AND_GCLB"
+  ingress_settings      = "ALLOW_INTERNAL_AND_GCLB"
 
   event_trigger {
     event_type = "google.storage.object.finalize"

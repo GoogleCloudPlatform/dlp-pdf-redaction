@@ -18,8 +18,9 @@ resource "google_service_account" "pdf_merger" {
 }
 
 resource "google_project_iam_member" "pdf_merger_storage_user" {
-  role   = "roles/storage.admin"
-  member = "serviceAccount:${google_service_account.pdf_merger.email}"
+  project = var.project_id
+  role    = "roles/storage.admin"
+  member  = "serviceAccount:${google_service_account.pdf_merger.email}"
 }
 
 resource "google_cloud_run_service" "pdf_merger" {
@@ -37,10 +38,10 @@ resource "google_cloud_run_service" "pdf_merger" {
 
   metadata {
     annotations = {
-        "run.googleapis.com/ingress" = "internal"
+      "run.googleapis.com/ingress" = "internal"
     }
   }
-  
+
   traffic {
     percent         = 100
     latest_revision = true
