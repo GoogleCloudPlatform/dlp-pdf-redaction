@@ -18,13 +18,15 @@ resource "google_service_account" "findings_writer" {
 }
 
 resource "google_project_iam_member" "findings_writer_bq_writer" {
-  role   = "roles/bigquery.dataEditor"
-  member = "serviceAccount:${google_service_account.findings_writer.email}"
+  project = var.project_id
+  role    = "roles/bigquery.dataEditor"
+  member  = "serviceAccount:${google_service_account.findings_writer.email}"
 }
 
 resource "google_project_iam_member" "findings_writer_storage_user" {
-  role   = "roles/storage.admin"
-  member = "serviceAccount:${google_service_account.findings_writer.email}"
+  project = var.project_id
+  role    = "roles/storage.admin"
+  member  = "serviceAccount:${google_service_account.findings_writer.email}"
 }
 
 resource "google_cloud_run_service" "findings_writer" {
@@ -55,10 +57,10 @@ resource "google_cloud_run_service" "findings_writer" {
 
   metadata {
     annotations = {
-        "run.googleapis.com/ingress" = "internal"
+      "run.googleapis.com/ingress" = "internal"
     }
   }
-  
+
   depends_on = [
     module.project_services,
   ]
