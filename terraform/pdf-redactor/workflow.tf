@@ -18,18 +18,21 @@ resource "google_service_account" "workflow" {
 }
 
 resource "google_project_iam_member" "workflow_cloudrun_invoker" {
-  role   = "roles/run.invoker"
-  member = "serviceAccount:${google_service_account.workflow.email}"
+  project = var.project_id
+  role    = "roles/run.invoker"
+  member  = "serviceAccount:${google_service_account.workflow.email}"
 }
 
 resource "google_project_iam_member" "workflow_log_writer" {
-  role   = "roles/logging.logWriter"
-  member = "serviceAccount:${google_service_account.workflow.email}"
+  project = var.project_id
+  role    = "roles/logging.logWriter"
+  member  = "serviceAccount:${google_service_account.workflow.email}"
 }
 
 resource "google_project_iam_member" "workflow_event_receiver" {
-  role   = "roles/eventarc.eventReceiver"
-  member = "serviceAccount:${google_service_account.workflow.email}"
+  project = var.project_id
+  role    = "roles/eventarc.eventReceiver"
+  member  = "serviceAccount:${google_service_account.workflow.email}"
 }
 
 data "template_file" "workflow" {
