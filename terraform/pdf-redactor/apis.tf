@@ -24,5 +24,7 @@ module "project_services" {
     "dlp.googleapis.com",
     "workflows.googleapis.com",
     "cloudfunctions.googleapis.com",
+    "eventarc.googleapis.com",
+    "pubsub.googleapis.com",
   ]
 }
