@@ -44,5 +44,8 @@ override.tf.json
 
 *.lock.hcl
 
-# Random Mac file
+# Mac file
 .DS_Store
+
+# dist
+dist
