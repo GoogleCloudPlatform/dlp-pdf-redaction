@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-resource "google_storage_bucket" "artifact_bucket" {
-  location                    = var.region
-  name                        = "pdf-redaction-artifacts-${local.app_suffix}"
-  uniform_bucket_level_access = true
-}
+# resource "google_storage_bucket" "artifact_bucket" {
+#   location                    = var.region
+#   name                        = "pdf-redaction-artifacts-${local.app_suffix}"
+#   uniform_bucket_level_access = true
+# }
 
 # locals {
 #   function_dir           = "${path.module}/../../src/workflow-trigger"
@@ -54,12 +54,12 @@ resource "google_project_iam_member" "workflow_trigger" {
 #   description = "Triggers PDF redaction workflow"
 #   runtime     = "python39"
 
-entry_point           = "handler"
-available_memory_mb   = 128
-source_archive_bucket = google_storage_bucket.artifact_bucket.name
-source_archive_object = google_storage_bucket_object.build_artifact.name
-service_account_email = google_service_account.workflow_trigger.email
-ingress_settings      = "ALLOW_INTERNAL_AND_GCLB"
+# entry_point           = "handler"
+# available_memory_mb   = 128
+# source_archive_bucket = google_storage_bucket.artifact_bucket.name
+# source_archive_object = google_storage_bucket_object.build_artifact.name
+# service_account_email = google_service_account.workflow_trigger.email
+# ingress_settings      = "ALLOW_INTERNAL_AND_GCLB"
 
 #   event_trigger {
 #     event_type = "google.storage.object.finalize"
@@ -76,6 +76,7 @@ ingress_settings      = "ALLOW_INTERNAL_AND_GCLB"
 # }
 
 resource "google_eventarc_trigger" "primary" {
+  provider        = google-beta
   name            = "workflow-trigger${local.app_suffix}"
   location        = var.region
   service_account = google_service_account.workflow_trigger.email
@@ -89,10 +90,7 @@ resource "google_eventarc_trigger" "primary" {
     value     = google_storage_bucket.pdf_input_bucket.name
   }
   destination {
-    workflow {
-      service = google_workflows_workflow.pdf_redactor.name
-      region  = var.wf_region
-    }
+    workflow = google_workflows_workflow.pdf_redactor.name
   }
 
   depends_on = [
