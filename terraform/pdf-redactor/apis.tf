@@ -23,7 +23,6 @@ module "project_services" {
     "bigquery.googleapis.com",
     "dlp.googleapis.com",
     "workflows.googleapis.com",
-    "cloudfunctions.googleapis.com",
     "eventarc.googleapis.com",
     "pubsub.googleapis.com",
   ]
