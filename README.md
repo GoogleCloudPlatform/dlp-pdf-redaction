@@ -10,8 +10,7 @@ The image below describes the solution architecture of the pdf redaction process
 ## Workflow Steps
 The workflow consists of the following steps:
 1. The user uploads a PDF file to a GCS bucket
-1. A Cloud Function is triggered
-1. The Function starts a Workflow to orchestrate the PDF file redaction. The workflow consists of the following steps:
+1. A Workflow is triggered by [EventArc](https://cloud.google.com/eventarc/docs). This workflow orchestrates the PDF file redaction consisting of the following steps:
     - Split the PDF into single pages, convert pages into images, and store them in a working bucket
     - Redact each image using DLP Image Redact API
     - Assemble back the PDF file from the list of redacted images and store it on GCS (output bucket)
