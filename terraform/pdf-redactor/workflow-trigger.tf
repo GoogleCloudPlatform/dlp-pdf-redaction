@@ -42,9 +42,14 @@ resource "google_service_account" "workflow_trigger" {
   display_name = "SA for Workflow Trigger function"
 }
 
-resource "google_project_iam_member" "workflow_trigger" {
+resource "google_project_iam_member" "workflow_trigger_workflow_invoker" {
   project = var.project_id
   role    = "roles/workflows.invoker"
+  member  = "serviceAccount:${google_service_account.workflow_trigger.email}"
+}
+resource "google_project_iam_member" "workflow_trigger_event_receiver" {
+  project = var.project_id
+  role    = "roles/eventarc.eventReceiver"
   member  = "serviceAccount:${google_service_account.workflow_trigger.email}"
 }
 
@@ -118,5 +123,7 @@ resource "google_eventarc_trigger" "primary" {
     module.project_services,
     google_project_iam_member.gcs_sa_to_pubsub,
     google_project_iam_member.pubsub_sa_token_creator,
+    google_project_iam_member.workflow_trigger_workflow_invoker,
+    google_project_iam_member.workflow_trigger_event_receiver
   ]
 }

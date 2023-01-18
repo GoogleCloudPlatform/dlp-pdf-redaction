@@ -13,7 +13,7 @@
 # limitations under the License.
 
 main:
-  params: [args]
+  params: [event]
   steps:
     - 1-configure-execution:
         steps:
@@ -25,8 +25,8 @@ main:
               - config:
                   working_bucket: "${working_bucket}"
                   output_bucket: "${output_bucket}"
-                  input_bucket: $${args.bucket}
-                  input_file: $${args.file}
+                  input_bucket: $${event.data.bucket}
+                  input_file: $${event.data.name}
                   project_id: $${sys.get_env("GOOGLE_CLOUD_PROJECT_ID")}
                   workflow_id: $${sys.get_env("GOOGLE_CLOUD_WORKFLOW_EXECUTION_ID")}
                   dpi: 92 # Higher DPI = better accuracy | Lower DPI = faster processing and smaller file sizes
@@ -36,7 +36,7 @@ main:
                     timestamp: $${timestamp}
                     job: $${sys.get_env("GOOGLE_CLOUD_WORKFLOW_ID")}
                     job_id: $${sys.get_env("GOOGLE_CLOUD_WORKFLOW_EXECUTION_ID")}
-                    document: $${"gs://" + args.bucket + "/" + args.file}
+                    document: $${"gs://" + event.data.bucket + "/" + event.data.name}
     - 2-split-pdf-pages:
         call: http.post
         args:
