@@ -17,26 +17,32 @@ main:
   steps:
     - 1-configure-execution:
         steps:
+        - validate-inputs:
+            switch:
+              - condition: '$${not(text.match_regex(event.data.name, ".*\\.pdf"))}'
+                raise:
+                  code: 400
+                  message: "Input file not recognized as a PDF file."
         - get-timestamp-step:
-              call: sys.now
-              result: timestamp
+            call: sys.now
+            result: timestamp
         - configure-workflow-step:
-              assign:
-              - config:
-                  working_bucket: "${working_bucket}"
-                  output_bucket: "${output_bucket}"
-                  input_bucket: $${event.data.bucket}
-                  input_file: $${event.data.name}
-                  project_id: $${sys.get_env("GOOGLE_CLOUD_PROJECT_ID")}
-                  workflow_id: $${sys.get_env("GOOGLE_CLOUD_WORKFLOW_EXECUTION_ID")}
-                  dpi: 92 # Higher DPI = better accuracy | Lower DPI = faster processing and smaller file sizes
-                  dlp_template: "${dlp_template}"
-                  include_quote_in_findings: true # Whether to include the redacted data in BQ findings or not (under quote column)
-                  findings_labels:
-                    timestamp: $${timestamp}
-                    job: $${sys.get_env("GOOGLE_CLOUD_WORKFLOW_ID")}
-                    job_id: $${sys.get_env("GOOGLE_CLOUD_WORKFLOW_EXECUTION_ID")}
-                    document: $${"gs://" + event.data.bucket + "/" + event.data.name}
+            assign:
+            - config:
+                working_bucket: "${working_bucket}"
+                output_bucket: "${output_bucket}"
+                input_bucket: $${event.data.bucket}
+                input_file: $${event.data.name}
+                project_id: $${sys.get_env("GOOGLE_CLOUD_PROJECT_ID")}
+                workflow_id: $${sys.get_env("GOOGLE_CLOUD_WORKFLOW_EXECUTION_ID")}
+                dpi: 92 # Higher DPI = better accuracy | Lower DPI = faster processing and smaller file sizes
+                dlp_template: "${dlp_template}"
+                include_quote_in_findings: true # Whether to include the redacted data in BQ findings or not (under quote column)
+                findings_labels:
+                  timestamp: $${timestamp}
+                  job: $${sys.get_env("GOOGLE_CLOUD_WORKFLOW_ID")}
+                  job_id: $${sys.get_env("GOOGLE_CLOUD_WORKFLOW_EXECUTION_ID")}
+                  document: $${"gs://" + event.data.bucket + "/" + event.data.name}
     - 2-split-pdf-pages:
         call: http.post
         args:
@@ -92,6 +98,7 @@ redact_single_pages_step:
           - findings_file_list: ""
     - run-dlp-on-each-page:
         parallel:
+          shared: [redacted_pages_list, findings_file_list]
           for:
             value: page_to_redact
             in: $${pages_to_redact}
