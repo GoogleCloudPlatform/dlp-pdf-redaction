@@ -26,4 +26,6 @@ module "project_services" {
     "eventarc.googleapis.com",
     "pubsub.googleapis.com",
   ]
+
+  disable_services_on_destroy = false
 }

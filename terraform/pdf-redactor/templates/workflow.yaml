@@ -15,7 +15,7 @@
 main:
   params: [event]
   steps:
-    - 1-configure-execution:
+    - 1. Configure Execution:
         steps:
         - validate-inputs:
             switch:
@@ -23,10 +23,10 @@ main:
                 raise:
                   code: 400
                   message: "Input file not recognized as a PDF file."
-        - get-timestamp-step:
+        - get-timestamp:
             call: sys.now
             result: timestamp
-        - configure-workflow-step:
+        - configure-workflow:
             assign:
             - config:
                 working_bucket: "${working_bucket}"
@@ -43,7 +43,8 @@ main:
                   job: $${sys.get_env("GOOGLE_CLOUD_WORKFLOW_ID")}
                   job_id: $${sys.get_env("GOOGLE_CLOUD_WORKFLOW_EXECUTION_ID")}
                   document: $${"gs://" + event.data.bucket + "/" + event.data.name}
-    - 2-split-pdf-pages:
+            - status: {}
+    - 2. Split PDF into pages:
         call: http.post
         args:
           url: "${pdf_splitter_url}"
@@ -58,52 +59,20 @@ main:
             output_folder: $${config.workflow_id}
             dpi: $${config.dpi}
         result: pages_to_redact
-    - 3-run-dlp-on-each-page:
-        call: redact_single_pages_step
-        args:
-          config: $${config}
-          pages_to_redact: $${pages_to_redact.body}
-        result: redact_results
-    - 4-concatenate-pages:
-        call: http.post
-        args:
-          url: "${pdf_merger_url}"
-          auth:
-            type: OIDC
-          body:
-            files_bucket: $${config.working_bucket}
-            files_to_concatenate: $${redact_results.redacted_pages_list}
-            output_file: $${text.split(config.input_file, ".pdf")[0] + "-redacted.pdf"}
-            output_file_bucket: $${config.output_bucket}
-        result: redacted_pdf
-    - 5-write-findings:
-        call: http.post
-        args:
-          url: "${findings_writer_url}"
-          auth:
-            type: OIDC
-          body:
-            findings_files: $${redact_results.findings_file_list}
-            files_bucket: $${config.working_bucket}
-            project_id: $${config.project_id}
-        result: bq_output
-    - 6-print-output:
-        return: $${redacted_pdf.body}
-redact_single_pages_step:
-  params: [config, pages_to_redact]
-  steps:
-    - define_step:
-        assign:
-          - redacted_pages_list: ""
-          - findings_file_list: ""
-    - run-dlp-on-each-page:
-        parallel:
-          shared: [redacted_pages_list, findings_file_list]
-          for:
-            value: page_to_redact
-            in: $${pages_to_redact}
-            steps:
-                - redact_page_step:
+    - 3. Run DLP on each page:
+        steps:
+        - define_step:
+            assign:
+              - redacted_pages_list: ""
+              - findings_file_list: ""
+        - run-dlp-on-each-page:
+            parallel:
+              shared: [redacted_pages_list, findings_file_list]
+              for:
+                value: page_to_redact
+                in: $${pages_to_redact.body}
+                steps:
+                - redact_page:
                     call: http.post
                     args:
                       url: "${dlp_runner_url}"
@@ -119,11 +88,34 @@ redact_single_pages_step:
                         project_id: $${config.project_id}
                         findings_labels: $${config.findings_labels}
                     result: redacted_page_result
-                - concat_output_step:
+                - concatenate_output:
                     assign:
-                      - redacted_pages_list: $${redacted_pages_list + redacted_page_result.body.redacted_image.file + ", "}
-                      - findings_file_list: $${findings_file_list + redacted_page_result.body.findings.file + ","}
-    - return-results:
-        return:
-          findings_file_list: $${findings_file_list}
-          redacted_pages_list: $${redacted_pages_list}
+                    - redacted_pages_list: $${redacted_pages_list + redacted_page_result.body.redacted_image.file + ", "}
+                    - findings_file_list: $${findings_file_list + redacted_page_result.body.findings.file + ","}
+        # - assign:
+
+    - 4. Concatenate pages:
+        call: http.post
+        args:
+          url: "${pdf_merger_url}"
+          auth:
+            type: OIDC
+          body:
+            files_bucket: $${config.working_bucket}
+            files_to_concatenate: $${redacted_pages_list}
+            output_file: $${text.split(config.input_file, ".pdf")[0] + "-redacted.pdf"}
+            output_file_bucket: $${config.output_bucket}
+        result: redacted_pdf
+    - 5. Write Findings:
+        call: http.post
+        args:
+          url: "${findings_writer_url}"
+          auth:
+            type: OIDC
+          body:
+            findings_files: $${findings_file_list}
+            files_bucket: $${config.working_bucket}
+            project_id: $${config.project_id}
+        result: bq_output
+    - 6. Done!:
+        return: $${redacted_pdf.body}
