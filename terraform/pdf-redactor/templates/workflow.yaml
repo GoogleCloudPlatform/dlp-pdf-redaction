@@ -63,14 +63,15 @@ main:
         steps:
         - define_step:
             assign:
-              - redacted_pages_list: ""
-              - findings_file_list: ""
+              - redacted_pages: {}
+              - findings_files: {}
         - run-dlp-on-each-page:
             parallel:
-              shared: [redacted_pages_list, findings_file_list]
+              shared: [redacted_pages, findings_files]
               for:
                 value: page_to_redact
                 in: $${pages_to_redact.body}
+                index: i
                 steps:
                 - redact_page:
                     call: http.post
@@ -90,10 +91,10 @@ main:
                     result: redacted_page_result
                 - concatenate_output:
                     assign:
-                    - redacted_pages_list: $${redacted_pages_list + redacted_page_result.body.redacted_image.file + ", "}
-                    - findings_file_list: $${findings_file_list + redacted_page_result.body.findings.file + ","}
-        # - assign:
-
+                    - redacted_pages[string(i)]: $${redacted_page_result.body.redacted_image.file}
+                    - findings_files[string(i)]: $${redacted_page_result.body.findings.file}
+                    # - redacted_pages_list: $${redacted_pages_list + redacted_page_result.body.redacted_image.file + ", "}
+                    # - findings_file_list: $${findings_file_list + redacted_page_result.body.findings.file + ","}
     - 4. Concatenate pages:
         call: http.post
         args:
@@ -102,7 +103,7 @@ main:
             type: OIDC
           body:
             files_bucket: $${config.working_bucket}
-            files_to_concatenate: $${redacted_pages_list}
+            files_to_concatenate: $${redacted_pages}
             output_file: $${text.split(config.input_file, ".pdf")[0] + "-redacted.pdf"}
             output_file_bucket: $${config.output_bucket}
         result: redacted_pdf
@@ -113,7 +114,7 @@ main:
           auth:
             type: OIDC
           body:
-            findings_files: $${findings_file_list}
+            findings_files: $${findings_files}
             files_bucket: $${config.working_bucket}
             project_id: $${config.project_id}
         result: bq_output
