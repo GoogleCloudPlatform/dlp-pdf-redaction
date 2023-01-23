@@ -15,29 +15,36 @@
 main:
   params: [event]
   steps:
-    - 1-configure-execution:
+    - 1. Configure Execution:
         steps:
-        - get-timestamp-step:
-              call: sys.now
-              result: timestamp
-        - configure-workflow-step:
-              assign:
-              - config:
-                  working_bucket: "${working_bucket}"
-                  output_bucket: "${output_bucket}"
-                  input_bucket: $${event.data.bucket}
-                  input_file: $${event.data.name}
-                  project_id: $${sys.get_env("GOOGLE_CLOUD_PROJECT_ID")}
-                  workflow_id: $${sys.get_env("GOOGLE_CLOUD_WORKFLOW_EXECUTION_ID")}
-                  dpi: 92 # Higher DPI = better accuracy | Lower DPI = faster processing and smaller file sizes
-                  dlp_template: "${dlp_template}"
-                  include_quote_in_findings: true # Whether to include the redacted data in BQ findings or not (under quote column)
-                  findings_labels:
-                    timestamp: $${timestamp}
-                    job: $${sys.get_env("GOOGLE_CLOUD_WORKFLOW_ID")}
-                    job_id: $${sys.get_env("GOOGLE_CLOUD_WORKFLOW_EXECUTION_ID")}
-                    document: $${"gs://" + event.data.bucket + "/" + event.data.name}
-    - 2-split-pdf-pages:
+        - validate-inputs:
+            switch:
+              - condition: '$${not(text.match_regex(event.data.name, ".*\\.pdf"))}'
+                raise:
+                  code: 400
+                  message: "Input file not recognized as a PDF file."
+        - get-timestamp:
+            call: sys.now
+            result: timestamp
+        - configure-workflow:
+            assign:
+            - config:
+                working_bucket: "${working_bucket}"
+                output_bucket: "${output_bucket}"
+                input_bucket: $${event.data.bucket}
+                input_file: $${event.data.name}
+                project_id: $${sys.get_env("GOOGLE_CLOUD_PROJECT_ID")}
+                workflow_id: $${sys.get_env("GOOGLE_CLOUD_WORKFLOW_EXECUTION_ID")}
+                dpi: 92 # Higher DPI = better accuracy | Lower DPI = faster processing and smaller file sizes
+                dlp_template: "${dlp_template}"
+                include_quote_in_findings: true # Whether to include the redacted data in BQ findings or not (under quote column)
+                findings_labels:
+                  timestamp: $${timestamp}
+                  job: $${sys.get_env("GOOGLE_CLOUD_WORKFLOW_ID")}
+                  job_id: $${sys.get_env("GOOGLE_CLOUD_WORKFLOW_EXECUTION_ID")}
+                  document: $${"gs://" + event.data.bucket + "/" + event.data.name}
+            - status: {}
+    - 2. Split PDF into pages:
         call: http.post
         args:
           url: "${pdf_splitter_url}"
@@ -52,13 +59,43 @@ main:
             output_folder: $${config.workflow_id}
             dpi: $${config.dpi}
         result: pages_to_redact
-    - 3-run-dlp-on-each-page:
-        call: redact_single_pages_step
-        args:
-          config: $${config}
-          pages_to_redact: $${pages_to_redact.body}
-        result: redact_results
-    - 4-concatenate-pages:
+    - 3. Run DLP on each page:
+        steps:
+        - define_step:
+            assign:
+              - redacted_pages: {}
+              - findings_files: {}
+        - run-dlp-on-each-page:
+            parallel:
+              shared: [redacted_pages, findings_files]
+              for:
+                value: page_to_redact
+                in: $${pages_to_redact.body}
+                index: i
+                steps:
+                - redact_page:
+                    call: http.post
+                    args:
+                      url: "${dlp_runner_url}"
+                      auth:
+                        type: OIDC
+                      body:
+                        input_file: $${page_to_redact}
+                        input_file_bucket: $${config.working_bucket}
+                        output_file: $${text.split(page_to_redact, ".jpg")[0] + "-redacted.jpg"}
+                        output_file_bucket: $${config.working_bucket}
+                        dlp_template: $${config.dlp_template}
+                        include_quote_in_findings: $${config.include_quote_in_findings}
+                        project_id: $${config.project_id}
+                        findings_labels: $${config.findings_labels}
+                    result: redacted_page_result
+                - concatenate_output:
+                    assign:
+                    - redacted_pages[string(i)]: $${redacted_page_result.body.redacted_image.file}
+                    - findings_files[string(i)]: $${redacted_page_result.body.findings.file}
+                    # - redacted_pages_list: $${redacted_pages_list + redacted_page_result.body.redacted_image.file + ", "}
+                    # - findings_file_list: $${findings_file_list + redacted_page_result.body.findings.file + ","}
+    - 4. Concatenate pages:
         call: http.post
         args:
           url: "${pdf_merger_url}"
@@ -66,56 +103,20 @@ main:
             type: OIDC
           body:
             files_bucket: $${config.working_bucket}
-            files_to_concatenate: $${redact_results.redacted_pages_list}
+            files_to_concatenate: $${redacted_pages}
             output_file: $${text.split(config.input_file, ".pdf")[0] + "-redacted.pdf"}
             output_file_bucket: $${config.output_bucket}
         result: redacted_pdf
-    - 5-write-findings:
+    - 5. Write Findings:
         call: http.post
         args:
           url: "${findings_writer_url}"
           auth:
             type: OIDC
           body:
-            findings_files: $${redact_results.findings_file_list}
+            findings_files: $${findings_files}
             files_bucket: $${config.working_bucket}
             project_id: $${config.project_id}
         result: bq_output
-    - 6-print-output:
+    - 6. Done!:
         return: $${redacted_pdf.body}
-redact_single_pages_step:
-  params: [config, pages_to_redact]
-  steps:
-    - define_step:
-        assign:
-          - redacted_pages_list: ""
-          - findings_file_list: ""
-    - run-dlp-on-each-page:
-        for:
-          value: page_to_redact
-          in: $${pages_to_redact}
-          steps:
-              - redact_page_step:
-                  call: http.post
-                  args:
-                    url: "${dlp_runner_url}"
-                    auth:
-                      type: OIDC
-                    body:
-                      input_file: $${page_to_redact}
-                      input_file_bucket: $${config.working_bucket}
-                      output_file: $${text.split(page_to_redact, ".jpg")[0] + "-redacted.jpg"}
-                      output_file_bucket: $${config.working_bucket}
-                      dlp_template: $${config.dlp_template}
-                      include_quote_in_findings: $${config.include_quote_in_findings}
-                      project_id: $${config.project_id}
-                      findings_labels: $${config.findings_labels}
-                  result: redacted_page_result
-              - concat_output_step:
-                  assign:
-                    - redacted_pages_list: $${redacted_pages_list + redacted_page_result.body.redacted_image.file + ", "}
-                    - findings_file_list: $${findings_file_list + redacted_page_result.body.findings.file + ","}
-    - return-results:
-        return:
-          findings_file_list: $${findings_file_list}
-          redacted_pages_list: $${redacted_pages_list}
