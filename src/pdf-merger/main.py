@@ -55,8 +55,13 @@ def concatenate_images_into_pdf(files_bucket, files_to_concatenate,
     )
 
     pdf_merger = PdfFileMerger()
-    for file in files_to_concatenate.split(","):
+    print("Sorting files")
+    # The images come as a dict { 1:file1, 2:file2, 3:file3 }
+    # So we will first sort the keys to ensure we concat the file in the right order
+    for k, v in sorted(files_to_concatenate.items()):
         # Skip if this is not a valid image filename
+        file = files_to_concatenate[k]
+        print(file)
         file = file.strip()
         if not file:
             continue

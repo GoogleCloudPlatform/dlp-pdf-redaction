@@ -55,22 +55,22 @@ def handle_post():
 def write_to_bq(input_bucket, findings_files, project):
     # Flatten the arrays of findings into a single array
     all_findings = []
-    findings_to_write = findings_files.split(",")
-    for findings_file in findings_to_write:
-        if findings_file:
-            print(f"Processing file: {findings_file}")
+    for k, v in findings_files.items():
+      file = findings_files[k]
+      if file:
+          print(f"Processing file: {file}")
 
-            # Read findings file from GCS to memory
-            bucket = storage_client.get_bucket(input_bucket)
-            blob = bucket.get_blob(findings_file)
+          # Read findings file from GCS to memory
+          bucket = storage_client.get_bucket(input_bucket)
+          blob = bucket.get_blob(file)
 
-            # Append findings to all_findings list
-            blob_findings = blob.download_as_bytes()
-            findings_string = blob_findings.decode('utf-8')
+          # Append findings to all_findings list
+          blob_findings = blob.download_as_bytes()
+          findings_string = blob_findings.decode('utf-8')
 
-            all_findings = all_findings + json.loads(findings_string)
+          all_findings = all_findings + json.loads(findings_string)
 
-            print(f"Findings file '{findings_file}' parsed correctly")
+          print(f"Findings file '{file}' parsed correctly")
 
     # Configure write out
     full_table_name = f"{project}.{BQ_DATASET}.{BQ_TABLE}"
