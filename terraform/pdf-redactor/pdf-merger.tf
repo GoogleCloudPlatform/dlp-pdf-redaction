@@ -23,28 +23,16 @@ resource "google_project_iam_member" "pdf_merger_storage_user" {
   member  = "serviceAccount:${google_service_account.pdf_merger.email}"
 }
 
-resource "google_cloud_run_service" "pdf_merger" {
+resource "google_cloud_run_v2_service" "pdf_merger" {
   name     = "pdf-merger${local.app_suffix}"
   location = var.region
+  ingress = "INGRESS_TRAFFIC_INTERNAL_ONLY"
 
   template {
-    spec {
-      containers {
-        image = var.image_pdf_merger
-      }
-      service_account_name = google_service_account.pdf_merger.email
+    containers {
+      image = var.image_pdf_merger
     }
-  }
-
-  metadata {
-    annotations = {
-      "run.googleapis.com/ingress" = "internal"
-    }
-  }
-
-  traffic {
-    percent         = 100
-    latest_revision = true
+    service_account = google_service_account.pdf_merger.email
   }
 
   depends_on = [

@@ -36,28 +36,16 @@ resource "google_project_iam_member" "dlp_runner_storage_user" {
   member  = "serviceAccount:${google_service_account.dlp_runner.email}"
 }
 
-resource "google_cloud_run_service" "dlp_runner" {
+resource "google_cloud_run_v2_service" "dlp_runner" {
   name     = "dlp-runner${local.app_suffix}"
   location = var.region
+  ingress = "INGRESS_TRAFFIC_INTERNAL_ONLY"
 
   template {
-    spec {
-      containers {
-        image = var.image_dlp_runner
-      }
-      service_account_name = google_service_account.dlp_runner.email
+    containers {
+      image = var.image_dlp_runner
     }
-  }
-
-  traffic {
-    percent         = 100
-    latest_revision = true
-  }
-
-  metadata {
-    annotations = {
-      "run.googleapis.com/ingress" = "internal"
-    }
+    service_account = google_service_account.dlp_runner.email
   }
 
   depends_on = [

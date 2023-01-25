@@ -39,10 +39,10 @@ data "template_file" "workflow" {
   template = file("${path.module}/templates/workflow.yaml")
 
   vars = {
-    pdf_splitter_url    = google_cloud_run_service.pdf_splitter.status[0].url
-    pdf_merger_url      = google_cloud_run_service.pdf_merger.status[0].url
-    dlp_runner_url      = google_cloud_run_service.dlp_runner.status[0].url
-    findings_writer_url = google_cloud_run_service.findings_writer.status[0].url
+    pdf_splitter_url    = google_cloud_run_v2_service.pdf_splitter.uri
+    pdf_merger_url      = google_cloud_run_v2_service.pdf_merger.uri
+    dlp_runner_url      = google_cloud_run_v2_service.dlp_runner.uri
+    findings_writer_url = google_cloud_run_v2_service.findings_writer.uri
     working_bucket      = google_storage_bucket.working_bucket.name
     output_bucket       = google_storage_bucket.pdf_output_bucket.name
     dlp_template        = google_data_loss_prevention_inspect_template.dlp_pdf_template.id

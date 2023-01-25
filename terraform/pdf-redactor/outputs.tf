@@ -13,22 +13,22 @@
 # limitations under the License.
 
 output "pdf_splitter_url" {
-  value       = google_cloud_run_service.dlp_runner.status[0].url
+  value       = google_cloud_run_v2_service.dlp_runner.uri
   description = "PDF Splitter function url"
 }
 
 output "pdf_merger_url" {
-  value       = google_cloud_run_service.pdf_merger.status[0].url
+  value       = google_cloud_run_v2_service.pdf_merger.uri
   description = "PDF Splitter function url"
 }
 
 output "dlp_runner_url" {
-  value       = google_cloud_run_service.dlp_runner.status[0].url
+  value       = google_cloud_run_v2_service.dlp_runner.uri
   description = "PDF Splitter function url"
 }
 
 output "findings_writer_url" {
-  value       = google_cloud_run_service.findings_writer.status[0].url
+  value       = google_cloud_run_v2_service.findings_writer.uri
   description = "PDF Splitter function url"
 }
 

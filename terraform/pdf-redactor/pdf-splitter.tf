@@ -23,28 +23,16 @@ resource "google_project_iam_member" "pdf_splitter_storage_user" {
   member  = "serviceAccount:${google_service_account.pdf_splitter.email}"
 }
 
-resource "google_cloud_run_service" "pdf_splitter" {
+resource "google_cloud_run_v2_service" "pdf_splitter" {
   name     = "pdf-splitter${local.app_suffix}"
   location = var.region
+  ingress = "INGRESS_TRAFFIC_INTERNAL_ONLY"
 
   template {
-    spec {
-      containers {
-        image = var.image_pdf_splitter
-      }
-      service_account_name = google_service_account.pdf_splitter.email
+    containers {
+      image = var.image_pdf_splitter
     }
-  }
-
-  metadata {
-    annotations = {
-      "run.googleapis.com/ingress" = "internal"
-    }
-  }
-
-  traffic {
-    percent         = 100
-    latest_revision = true
+    service_account = google_service_account.pdf_splitter.email
   }
 
   depends_on = [
