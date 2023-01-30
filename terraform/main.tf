@@ -23,8 +23,8 @@ module "pdf_redactor" {
   region                = var.region
   wf_region             = var.wf_region
   suffix                = random_id.pdf_redaction.hex
-  image_dlp_runner      = "gcr.io/${var.project_id}/dlp-runner"
-  image_findings_writer = "gcr.io/${var.project_id}/findings-writer"
-  image_pdf_merger      = "gcr.io/${var.project_id}/pdf-merger"
-  image_pdf_splitter    = "gcr.io/${var.project_id}/pdf-splitter"
+#   image_dlp_runner      = "gcr.io/${var.project_id}/dlp-runner"
+#   image_findings_writer = "gcr.io/${var.project_id}/findings-writer"
+#   image_pdf_merger      = "gcr.io/${var.project_id}/pdf-merger"
+#   image_pdf_splitter    = "gcr.io/${var.project_id}/pdf-splitter"
 }

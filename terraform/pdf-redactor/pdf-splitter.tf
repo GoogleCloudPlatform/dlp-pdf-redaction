@@ -12,6 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+resource "docker_image" "pdf_splitter" {
+  name = "${local.docker_repo}/pdf-splitter"
+  build {
+    context = "${path.module}/../../src/pdf-splitter"
+  }
+}
+
+resource "docker_registry_image" "pdf_splitter" {
+  name = docker_image.pdf_splitter.name
+
+  depends_on = [
+    docker_image.pdf_splitter
+  ]
+}
+
 resource "google_service_account" "pdf_splitter" {
   account_id   = "pdf-splitter-sa${local.app_suffix}"
   display_name = "SA for PDF Splitter function"
@@ -30,12 +45,13 @@ resource "google_cloud_run_v2_service" "pdf_splitter" {
 
   template {
     containers {
-      image = var.image_pdf_splitter
+      image = docker_registry_image.pdf_splitter.name
     }
     service_account = google_service_account.pdf_splitter.email
   }
 
   depends_on = [
     module.project_services,
+    docker_registry_image.pdf_splitter,
   ]
 }

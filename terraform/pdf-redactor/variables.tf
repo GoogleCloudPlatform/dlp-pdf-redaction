@@ -32,19 +32,19 @@ variable "suffix" {
     error_message = "Suffix must be between 3 and 6 characters."
   }
 }
-variable "image_dlp_runner" {
-  type        = string
-  description = "Docker image for PDF Merger"
-}
-variable "image_findings_writer" {
-  type        = string
-  description = "Docker image for PDF Merger"
-}
-variable "image_pdf_merger" {
-  type        = string
-  description = "Docker image for PDF Merger"
-}
-variable "image_pdf_splitter" {
-  type        = string
-  description = "Docker image for PDF Merger"
-}
+# variable "image_dlp_runner" {
+#   type        = string
+#   description = "Docker image for PDF Merger"
+# }
+# variable "image_findings_writer" {
+#   type        = string
+#   description = "Docker image for PDF Merger"
+# }
+# variable "image_pdf_merger" {
+#   type        = string
+#   description = "Docker image for PDF Merger"
+# }
+# variable "image_pdf_splitter" {
+#   type        = string
+#   description = "Docker image for PDF Merger"
+# }

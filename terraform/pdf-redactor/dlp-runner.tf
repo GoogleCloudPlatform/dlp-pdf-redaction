@@ -12,6 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+resource "docker_image" "dlp_runner" {
+  name = "${local.docker_repo}/dlp-runner"
+  build {
+    context = "${path.module}/../../src/dlp-runner"
+  }
+}
+
+resource "docker_registry_image" "dlp_runner" {
+  name = docker_image.dlp_runner.name
+
+  depends_on = [
+    docker_image.dlp_runner
+  ]
+}
+
 resource "google_service_account" "dlp_runner" {
   project      = var.project_id
   account_id   = "dlp-runner-sa${local.app_suffix}"
@@ -43,12 +58,13 @@ resource "google_cloud_run_v2_service" "dlp_runner" {
 
   template {
     containers {
-      image = var.image_dlp_runner
+      image = docker_registry_image.dlp_runner.name
     }
     service_account = google_service_account.dlp_runner.email
   }
 
   depends_on = [
     module.project_services,
+    docker_registry_image.dlp_runner,
   ]
 }

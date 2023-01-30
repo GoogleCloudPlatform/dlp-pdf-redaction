@@ -20,6 +20,17 @@ terraform {
     google-beta = {
       version = "=4.50.0"
     }
+    docker = {
+      source  = "kreuzwerker/docker"
+      version = "=3.0.1"
+    }
+  }
+}
+
+provider "docker" {
+  registry_auth {
+    address = "gcr.io"
+    config_file = pathexpand("~/.docker/config.json")
   }
 }
 

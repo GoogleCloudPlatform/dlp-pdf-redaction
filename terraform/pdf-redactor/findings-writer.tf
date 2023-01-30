@@ -12,6 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+resource "docker_image" "findings_writer" {
+  name = "${local.docker_repo}/findings-writer"
+  build {
+    context = "${path.module}/../../src/findings-writer"
+  }
+}
+
+resource "docker_registry_image" "findings_writer" {
+  name = docker_image.findings_writer.name
+
+  depends_on = [
+    docker_image.findings_writer
+  ]
+}
+
 resource "google_service_account" "findings_writer" {
   account_id   = "findings-writer-sa${local.app_suffix}"
   display_name = "SA for Findings Writer function"
@@ -36,7 +51,7 @@ resource "google_cloud_run_v2_service" "findings_writer" {
 
   template {
     containers {
-      image = var.image_findings_writer
+      image = docker_registry_image.findings_writer.name
       env {
         name  = "BQ_DATASET"
         value = google_bigquery_dataset.pdf_redaction.dataset_id
@@ -51,5 +66,6 @@ resource "google_cloud_run_v2_service" "findings_writer" {
 
   depends_on = [
     module.project_services,
+    docker_registry_image.findings_writer,
   ]
 }

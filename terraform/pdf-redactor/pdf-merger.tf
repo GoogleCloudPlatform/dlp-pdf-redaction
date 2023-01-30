@@ -12,6 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+resource "docker_image" "pdf_merger" {
+  name = "${local.docker_repo}/pdf-merger"
+  build {
+    context = "${path.module}/../../src/pdf-merger"
+  }
+}
+
+resource "docker_registry_image" "pdf_merger" {
+  name = docker_image.pdf_merger.name
+
+  depends_on = [
+    docker_image.pdf_merger
+  ]
+}
+
 resource "google_service_account" "pdf_merger" {
   account_id   = "pdf-merger-sa${local.app_suffix}"
   display_name = "SA for PDF Merger function"
@@ -30,12 +45,13 @@ resource "google_cloud_run_v2_service" "pdf_merger" {
 
   template {
     containers {
-      image = var.image_pdf_merger
+      image = docker_registry_image.pdf_merger.name
     }
     service_account = google_service_account.pdf_merger.email
   }
 
   depends_on = [
     module.project_services,
+    docker_registry_image.pdf_merger,
   ]
 }

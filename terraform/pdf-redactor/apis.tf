@@ -25,6 +25,7 @@ module "project_services" {
     "workflows.googleapis.com",
     "eventarc.googleapis.com",
     "pubsub.googleapis.com",
+    "artifactregistry.googleapis.com",
   ]
 
   disable_services_on_destroy = false
