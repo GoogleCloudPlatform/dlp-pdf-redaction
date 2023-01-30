@@ -12,15 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+locals {
+  dlp_runner_source = "${local.src_path}/dlp-runner"
+}
+
 resource "docker_image" "dlp_runner" {
   name = "${local.docker_repo}/dlp-runner"
   build {
-    context = "${path.module}/../../src/dlp-runner"
+    context = local.dlp_runner_source
   }
 }
 
 resource "docker_registry_image" "dlp_runner" {
   name = docker_image.dlp_runner.name
+
+  triggers = {
+    dir_sha1 = sha1(join("", [for f in fileset(local.dlp_runner_source, "**") : filesha1("${local.dlp_runner_source}/${f}")]))
+  }
 
   depends_on = [
     docker_image.dlp_runner
@@ -54,7 +62,7 @@ resource "google_project_iam_member" "dlp_runner_storage_user" {
 resource "google_cloud_run_v2_service" "dlp_runner" {
   name     = "dlp-runner${local.app_suffix}"
   location = var.region
-  ingress = "INGRESS_TRAFFIC_INTERNAL_ONLY"
+  ingress  = "INGRESS_TRAFFIC_INTERNAL_ONLY"
 
   template {
     containers {

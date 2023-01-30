@@ -29,7 +29,7 @@ terraform {
 
 provider "docker" {
   registry_auth {
-    address = "gcr.io"
+    address     = "gcr.io"
     config_file = pathexpand("~/.docker/config.json")
   }
 }
@@ -42,4 +42,6 @@ provider "google" {
 locals {
   app_suffix            = "-${var.suffix}"
   app_suffix_underscore = "_${var.suffix}"
+  src_path              = "${path.module}/../../src"
+  docker_repo           = "gcr.io/${var.project_id}"
 }

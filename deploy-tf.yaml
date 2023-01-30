@@ -12,15 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-resource "random_id" "pdf_redaction" {
-  byte_length = 2
-}
+steps:
+- id: 'tf init'
+  name: 'hashicorp/terraform:1.0.0'
+  args: ["init", "-input=false"]
+  dir: 'terraform'
+  env:
+  - 'TF_VAR_project_id=$PROJECT_ID'
 
-module "pdf_redactor" {
-  source = "./pdf-redactor"
-
-  project_id = var.project_id
-  region     = var.region
-  wf_region  = var.wf_region
-  suffix     = random_id.pdf_redaction.hex
-}
+- id: 'tf apply'
+  name: 'hashicorp/terraform:1.0.0'
+  args: ["apply", "-auto-approve"]
+  dir: 'terraform'
+  env:
+  - 'TF_VAR_project_id=$PROJECT_ID'

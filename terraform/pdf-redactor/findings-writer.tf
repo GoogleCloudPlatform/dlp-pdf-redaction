@@ -12,15 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+locals {
+  findings_writer_source = "${local.src_path}/findings-writer"
+}
+
 resource "docker_image" "findings_writer" {
   name = "${local.docker_repo}/findings-writer"
   build {
-    context = "${path.module}/../../src/findings-writer"
+    context = local.findings_writer_source
   }
 }
 
 resource "docker_registry_image" "findings_writer" {
   name = docker_image.findings_writer.name
+
+  triggers = {
+    dir_sha1 = sha1(join("", [for f in fileset(local.findings_writer_source, "**") : filesha1("${local.findings_writer_source}/${f}")]))
+  }
 
   depends_on = [
     docker_image.findings_writer
@@ -47,7 +55,7 @@ resource "google_project_iam_member" "findings_writer_storage_user" {
 resource "google_cloud_run_v2_service" "findings_writer" {
   name     = "findings-writer${local.app_suffix}"
   location = var.region
-  ingress = "INGRESS_TRAFFIC_INTERNAL_ONLY"
+  ingress  = "INGRESS_TRAFFIC_INTERNAL_ONLY"
 
   template {
     containers {

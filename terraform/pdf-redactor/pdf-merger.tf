@@ -12,15 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+locals {
+  pdf_merger_source = "${local.src_path}/pdf-merger"
+}
+
 resource "docker_image" "pdf_merger" {
   name = "${local.docker_repo}/pdf-merger"
   build {
-    context = "${path.module}/../../src/pdf-merger"
+    context = local.pdf_merger_source
   }
 }
 
 resource "docker_registry_image" "pdf_merger" {
   name = docker_image.pdf_merger.name
+
+  triggers = {
+    dir_sha1 = sha1(join("", [for f in fileset(local.pdf_merger_source, "**") : filesha1("${local.pdf_merger_source}/${f}")]))
+  }
 
   depends_on = [
     docker_image.pdf_merger
@@ -41,7 +49,7 @@ resource "google_project_iam_member" "pdf_merger_storage_user" {
 resource "google_cloud_run_v2_service" "pdf_merger" {
   name     = "pdf-merger${local.app_suffix}"
   location = var.region
-  ingress = "INGRESS_TRAFFIC_INTERNAL_ONLY"
+  ingress  = "INGRESS_TRAFFIC_INTERNAL_ONLY"
 
   template {
     containers {
