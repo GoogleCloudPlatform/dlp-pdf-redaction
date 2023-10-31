@@ -23,15 +23,11 @@ resource "google_bigquery_dataset" "pdf_redaction" {
   ]
 }
 
-data "template_file" "bq_table_findings" {
-  template = file("${path.module}/templates/bq-table-findings.json")
-}
-
 resource "google_bigquery_table" "findings" {
   dataset_id          = google_bigquery_dataset.pdf_redaction.dataset_id
   table_id            = "findings"
   deletion_protection = false
-  schema              = data.template_file.bq_table_findings.rendered
+  schema              = templatefile("${path.module}/templates/bq-table-findings.json", {})
 
   depends_on = [
     module.project_services,
