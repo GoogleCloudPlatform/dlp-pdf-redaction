@@ -35,10 +35,14 @@ resource "google_project_iam_member" "workflow_event_receiver" {
   member  = "serviceAccount:${google_service_account.workflow.email}"
 }
 
-data "template_file" "workflow" {
-  template = file("${path.module}/templates/workflow.yaml")
-
-  vars = {
+resource "google_workflows_workflow" "pdf_redactor" {
+  name            = "pdf-redactor-workflow${local.app_suffix}"
+  region          = var.wf_region
+  description     = "Workflow that redacts sensitive information from a single PDF file"
+  service_account = google_service_account.workflow.id
+  source_contents = templatefile(
+    "${path.module}/templates/workflow.yaml",
+    {
     pdf_splitter_url    = google_cloud_run_v2_service.pdf_splitter.uri
     pdf_merger_url      = google_cloud_run_v2_service.pdf_merger.uri
     dlp_runner_url      = google_cloud_run_v2_service.dlp_runner.uri
@@ -46,15 +50,8 @@ data "template_file" "workflow" {
     working_bucket      = google_storage_bucket.working_bucket.name
     output_bucket       = google_storage_bucket.pdf_output_bucket.name
     dlp_template        = google_data_loss_prevention_inspect_template.dlp_pdf_template.id
-  }
-}
-
-resource "google_workflows_workflow" "pdf_redactor" {
-  name            = "pdf-redactor-workflow${local.app_suffix}"
-  region          = var.wf_region
-  description     = "Workflow that redacts sensitive information from a single PDF file"
-  service_account = google_service_account.workflow.id
-  source_contents = data.template_file.workflow.rendered
+    }
+  )
 
   depends_on = [
     module.project_services,
