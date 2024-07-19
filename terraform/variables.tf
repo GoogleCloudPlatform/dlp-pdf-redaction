@@ -16,6 +16,10 @@ variable "project_id" {
   type        = string
   description = "Project ID"
 }
+variable "docker_repo_name" {
+  type        = string
+  description = "Docker Repo Name"
+}
 variable "region" {
   type        = string
   description = "GCP Region"

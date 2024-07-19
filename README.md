@@ -53,8 +53,20 @@ You will first need to build the docker images for each microservice.
 
 ```
 PROJECT_ID=[YOUR_PROJECT_ID]
-gcloud services enable cloudbuild.googleapis.com containerregistry.googleapis.com --project $PROJECT_ID
-gcloud builds submit --config ./build-app-images.yaml --project $PROJECT_ID
+PROJECT_NUMBER=$(gcloud projects list --filter="PROJECT_ID=$PROJECT_ID" --format="value(PROJECT_NUMBER)")
+REGION=us-central1
+DOCKER_REPO_NAME=pdf-redaction-docker-repo
+
+# Enable required APIs
+gcloud services enable cloudbuild.googleapis.com artifactregistry.googleapis.com --project $PROJECT_ID
+# Create a Docker image repo to store apps docker images
+gcloud artifacts repositories create $DOCKER_REPO_NAME --repository-format=docker --description="PDF Redaction Docker Image repository" --project $PROJECT_ID --location=$REGION
+# Grant Required roles to the CloudBuild service account
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+  --member="serviceAccount:$PROJECT_NUMBER-compute@developer.gserviceaccount.com" \
+  --role="roles/cloudbuild.serviceAgent"
+# Build app docker images
+gcloud builds submit --config ./build-app-images.yaml --substitutions _REGION=$REGION,_DOCKER_REPO_NAME=$DOCKER_REPO_NAME --project $PROJECT_ID
 ```
 Note: If you receive a pop-up for permissions, you can authorize gcloud to request your credentials an make a GCP API call.
 
@@ -62,7 +74,7 @@ Note: If you receive a pop-up for permissions, you can authorize gcloud to reque
 The above command will build 4 docker images and push them into Google Container Registry (GCR). Run the following command and confirm that the images are present in GCR.
 
 ```
-gcloud container images list --project $PROJECT_ID
+gcloud artifacts docker images list $REGION-docker.pkg.dev/$PROJECT_ID/$DOCKER_REPO_NAME
 ```
 
 ### 4. Deploy the infrastructure using Terraform
@@ -71,11 +83,16 @@ This terraform deployment requires the following variables.
 
 - project_id            = "YOUR_PROJECT_ID"
 - region                = "YOUR_REGION_REGION"
+- docker_repo_name      = "DOCKER_REPO_NAME"
 - wf_region             = "YOUR_WORKFLOW_REGION"
 
 From the root folder of this repo, run the following commands:
 ```
 export TF_VAR_project_id=$PROJECT_ID
+export TF_VAR_region=$REGION
+export TF_VAR_wf_region=$REGION
+export TF_VAR_docker_repo_name=$DOCKER_REPO_NAME
+
 terraform -chdir=terraform init
 terraform -chdir=terraform apply -auto-approve
 ```
@@ -108,4 +125,3 @@ If you are curious about the behind the scenes, try:
 - Download the redacted pdf file, open it with your preferred pdf reader, and search for text in the PDF file.
 - Looking into [Cloud Workflows](https://console.cloud.google.com/workflows) in the GCP web console. You will see that a workflow execution was triggered when you uploaded the file to GCS.
 - Explore the `pdf_redaction_xxxx` dataset in BigQuery and check out the metadata that was inserted into the `findings` table.
-
