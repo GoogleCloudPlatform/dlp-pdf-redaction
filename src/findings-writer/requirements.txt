@@ -1,4 +1,4 @@
 Flask==3.0.0
 google-cloud-bigquery==3.13.0
 google-cloud-storage==2.13.0
-gunicorn==21.2.0
+gunicorn==22.0.0
