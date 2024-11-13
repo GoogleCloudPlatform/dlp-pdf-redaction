@@ -56,17 +56,32 @@ PROJECT_ID=[YOUR_PROJECT_ID]
 PROJECT_NUMBER=$(gcloud projects list --filter="PROJECT_ID=$PROJECT_ID" --format="value(PROJECT_NUMBER)")
 REGION=us-central1
 DOCKER_REPO_NAME=pdf-redaction-docker-repo
+CLOUD_BUILD_SERVICE_ACCOUNT=cloudbuild-sa
 
 # Enable required APIs
 gcloud services enable cloudbuild.googleapis.com artifactregistry.googleapis.com --project $PROJECT_ID
+
 # Create a Docker image repo to store apps docker images
 gcloud artifacts repositories create $DOCKER_REPO_NAME --repository-format=docker --description="PDF Redaction Docker Image repository" --project $PROJECT_ID --location=$REGION
-# Grant Required roles to the CloudBuild service account
+
+# Create Service Account for CloudBuild and grant required roles
+gcloud iam service-accounts create $CLOUD_BUILD_SERVICE_ACCOUNT \
+  --description="Service Account for CloudBuild created by PDF Redaction solution" \
+  --display-name="CloudBuild SA (PDF Readaction)"
 gcloud projects add-iam-policy-binding $PROJECT_ID \
-  --member="serviceAccount:$PROJECT_NUMBER-compute@developer.gserviceaccount.com" \
+  --member="serviceAccount:$CLOUD_BUILD_SERVICE_ACCOUNT@$PROJECT_ID.iam.gserviceaccount.com" \
   --role="roles/cloudbuild.serviceAgent"
-# Build app docker images
-gcloud builds submit --config ./build-app-images.yaml --substitutions _REGION=$REGION,_DOCKER_REPO_NAME=$DOCKER_REPO_NAME --project $PROJECT_ID
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+  --member="serviceAccount:$CLOUD_BUILD_SERVICE_ACCOUNT@$PROJECT_ID.iam.gserviceaccount.com" \
+  --role="roles/storage.objectUser"
+
+# Build docker images of the app and store them in artifact registry repo
+gcloud builds submit \
+  --config ./build-app-images.yaml \
+  --substitutions _REGION=$REGION,_DOCKER_REPO_NAME=$DOCKER_REPO_NAME \
+  --service-account=projects/$PROJECT_ID/serviceAccounts/$CLOUD_BUILD_SERVICE_ACCOUNT@$PROJECT_ID.iam.gserviceaccount.com \
+  --default-buckets-behavior=regional-user-owned-bucket \
+  --project $PROJECT_ID
 ```
 Note: If you receive a pop-up for permissions, you can authorize gcloud to request your credentials an make a GCP API call.
 
@@ -97,7 +112,12 @@ terraform -chdir=terraform init
 terraform -chdir=terraform apply -auto-approve
 ```
 
-**Note:** Region and Workflow region both default to `us-central1`. If you wish to deploy the resources in a different region, specify the `region` and the `wf_region` variables (ie. using `TF_VAR_region` and `TF_VAR_wf_region`). Cloud Workflows is only available in specific regions, for more information check the [documentation](https://cloud.google.com/workflows/docs/locations).
+**Notes:**
+  * If you get an error related to `eventarc` or `worklflows` provisioning, just give it a few seconds and rerun the `terraform -chdir=terraform apply -auto-approve` command. Explanation: Terraform enables some services like `eventarc` an `workflows` that might take a couple of minutes to finish provisioning resources and configuring permissions, simply re-runing the apply command should fix the issue.
+  * Region and Workflow region both default to `us-central1`. If you wish to deploy the resources in a different region, specify the `region` and the `wf_region` variables (ie. using `TF_VAR_region` and `TF_VAR_wf_region`). Cloud Workflows is only available in specific regions, for more information check the [documentation](https://cloud.google.com/workflows/docs/locations).
+  * If you come across an issue please check the [Issues section](https://github.com/GoogleCloudPlatform/dlp-pdf-redaction/issues). If your issue is not listed there, please report it as a new issue.
+
+
 
 ### 5. Take note of Terraform Outputs
 
