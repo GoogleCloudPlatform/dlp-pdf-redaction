@@ -56,11 +56,16 @@ def concatenate_images_into_pdf(files_bucket, files_to_concatenate,
 
     pdf_merger = PdfFileMerger()
     print("Sorting files")
-    # The images come as a dict { 1:file1, 2:file2, 3:file3 }
-    # So we will first sort the keys to ensure we concat the file in the right order
-    for k, v in sorted(files_to_concatenate.items()):
-        # Skip if this is not a valid image filename
-        file = files_to_concatenate[k]
+
+    # Ensure pages are concatenated in the correct order
+    sorted_files = sorted(files_to_concatenate.items(), key=lambda item: int(item[0]))
+
+    for page_number, file in sorted_files:
+        # Skip if the file path is invalid
+        if not isinstance(file, str) or not file:
+            print(f"Skipping invalid file path for page {page_number}: {file}")
+            continue
+
         print(file)
         file = file.strip()
         if not file:

@@ -119,4 +119,16 @@ main:
             project_id: $${config.project_id}
         result: bq_output
     - 6. Done!:
-        return: $${redacted_pdf.body}
+        steps:
+          - return_result:
+              return: $${redacted_pdf.body}
+          - delete_input_file:
+              call: gcs.delete_object
+              args:
+                bucket: $${config.input_bucket}
+                object: $${config.input_file}
+              result: delete_result
+          - log_deletion:
+              call: sys.log
+              args:
+                text: "Input file deleted: $${delete_result}"
