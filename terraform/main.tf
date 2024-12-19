@@ -12,6 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+terraform {
+  backend "gcs" {
+    bucket  = "var.project_id-terraform-backend"
+    prefix  = "terraform/state"
+  }
+}
+
 resource "random_id" "pdf_redaction" {
   byte_length = 2
 }
