@@ -132,14 +132,14 @@ terraform -chdir=terraform output
 
 Use the command below to upload the test file into the `input_bucket`. After a few seconds, you should see a redacted PDF file in the `output_bucket`.
 ```
-gsutil cp ./test_file.pdf [INPUT_BUCKET_FROM_OUTPUT e.g. gs://pdf-input-bucket-xxxx]
+gcloud storage cp ./test_file.pdf [INPUT_BUCKET_FROM_OUTPUT e.g. gs://pdf-input-bucket-xxxx]
 ```
 
 If you are curious about the behind the scenes, try:
 - Checkout the Redacted file in the `output_bucket`.
 
   ```
-  gsutil ls [OUTPUT_BUCKET_FROM_OUTPUT e.g. gs://pdf-output-bucket-xxxx]
+  gcloud storage ls [OUTPUT_BUCKET_FROM_OUTPUT e.g. gs://pdf-output-bucket-xxxx]
   ```
 
 - Download the redacted pdf file, open it with your preferred pdf reader, and search for text in the PDF file.
